@@ -7,6 +7,7 @@ from domain.meio import Meio
 from tests.use_cases.fakes import (
     DespesaRepositoryEmMemoria,
     GrupoRepositoryEmMemoria,
+    PagamentoRepositoryEmMemoria,
     VaquinhaRepositoryEmMemoria,
 )
 from use_cases.adicionar_membro import AdicionarMembro
@@ -302,7 +303,9 @@ def test_contribuicoes_nao_alteram_os_saldos(
         pagador_id=ana,
         divisao=DivisaoIgualitaria(membros=(ana, bruno, carla)),
     )
-    consultar = ConsultarSaldos(grupos, despesas)
+    consultar = ConsultarSaldos(
+        grupos, despesas, PagamentoRepositoryEmMemoria()
+    )
     antes = consultar.executar(grupo.id)
 
     contribuir(vaquinha.id, bruno, 5000)

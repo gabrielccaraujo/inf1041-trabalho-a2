@@ -12,6 +12,7 @@ Arquitetura em camadas: as dependencias apontam para dentro (`app` -> `use_cases
 app/
   routes/grupo_routes.py             # rotas HTTP de Grupo e Membros (Flask Blueprint)
   routes/despesa_routes.py           # rotas HTTP de Despesas
+  routes/pagamento_routes.py         # rotas HTTP de Pagamentos
   routes/saldo_routes.py             # GET de Saldos e Transferencias sugeridas
   routes/vaquinha_routes.py          # rotas HTTP de Vaquinhas e Contribuicoes
   routes/health_routes.py            # GET /api/health
@@ -21,6 +22,7 @@ app/
 domain/
   grupo.py                           # raiz Grupo, entidade Membro e porta GrupoRepository
   despesa.py                         # raiz Despesa, VOs Divisao e Cota, porta DespesaRepository
+  pagamento.py                       # raiz Pagamento, porta PagamentoRepository
   saldos.py                          # servico CalculadoraDeSaldos (ADR 0004)
   vaquinha.py                        # raiz Vaquinha, VO Contribuicao, porta VaquinhaRepository
   meio.py                            # enumeracao Meio (pix, dinheiro, outro)
@@ -30,6 +32,7 @@ use_cases/                           # um caso de uso por acao (CriarGrupo, Adic
 infra/
   repositories/grupo_repository_sqlite.py  # implementacao SQLite do GrupoRepository
   repositories/despesa_repository_sqlite.py  # implementacao SQLite do DespesaRepository
+  repositories/pagamento_repository_sqlite.py # implementacao SQLite do PagamentoRepository
   repositories/vaquinha_repository_sqlite.py # implementacao SQLite do VaquinhaRepository
   db/database.py                     # conexao SQLite (segura entre threads) e schema
 tests/                               # testes por seam (use_cases com repositorio em memoria, app via API)
@@ -44,7 +47,7 @@ python -m app.main      # sobe a API em http://127.0.0.1:5000
 python -m pytest        # roda os testes
 ```
 
-Endpoints: `GET /api/health` (200 se API e banco ok, 503 se o banco falhar), `POST /api/grupos` (`{"nome": "..."}`), `GET /api/grupos/<id>` (Grupo com Membros), `POST /api/grupos/<id>/membros` (`{"nome": "...", "chave_pix": "..."}`, Chave Pix opcional), `POST /api/grupos/<id>/despesas` (`{"descricao", "valor_centavos", "pagador_id", "data"?, "divisao": {"modo": "igualitaria", "membros": [...]} | {"modo": "por_valores", "cotas": [{"membro_id", "valor_centavos"}]}}`), `GET /api/grupos/<id>/despesas`, `GET /api/grupos/<id>/saldos` (`{"saldos": [{"membro_id", "saldo_centavos"}], "transferencias": [{"de_membro_id", "para_membro_id", "valor_centavos"}]}`), `POST /api/grupos/<id>/vaquinhas` (`{"titulo", "descricao", "meta_centavos", "beneficiario_id"}`), `GET /api/grupos/<id>/vaquinhas`, `POST /api/grupos/<id>/vaquinhas/<vid>/contribuicoes` (`{"membro_id", "valor_centavos", "meio": "pix" | "dinheiro" | "outro"}`, responde a Contribuicao criada), `POST /api/grupos/<id>/vaquinhas/<vid>/encerrar`. Erros vem como `{"erro": "mensagem"}`: 400 corpo malformado, 404 recurso inexistente, 422 regra de dominio violada. O contrato completo esta na issue #1 e no ADR 0008.
+Endpoints: `GET /api/health` (200 se API e banco ok, 503 se o banco falhar), `POST /api/grupos` (`{"nome": "..."}`), `GET /api/grupos/<id>` (Grupo com Membros), `POST /api/grupos/<id>/membros` (`{"nome": "...", "chave_pix": "..."}`, Chave Pix opcional), `POST /api/grupos/<id>/despesas` (`{"descricao", "valor_centavos", "pagador_id", "data"?, "divisao": {"modo": "igualitaria", "membros": [...]} | {"modo": "por_valores", "cotas": [{"membro_id", "valor_centavos"}]}}`), `GET /api/grupos/<id>/despesas`, `POST /api/grupos/<id>/pagamentos` (`{"de_membro_id", "para_membro_id", "valor_centavos", "meio"}`), `GET /api/grupos/<id>/pagamentos`, `GET /api/grupos/<id>/saldos` (considera Despesas e Pagamentos) (`{"saldos": [{"membro_id", "saldo_centavos"}], "transferencias": [{"de_membro_id", "para_membro_id", "valor_centavos"}]}`), `POST /api/grupos/<id>/vaquinhas` (`{"titulo", "descricao", "meta_centavos", "beneficiario_id"}`), `GET /api/grupos/<id>/vaquinhas`, `POST /api/grupos/<id>/vaquinhas/<vid>/contribuicoes` (`{"membro_id", "valor_centavos", "meio": "pix" | "dinheiro" | "outro"}`, responde a Contribuicao criada), `POST /api/grupos/<id>/vaquinhas/<vid>/encerrar`. Erros vem como `{"erro": "mensagem"}`: 400 corpo malformado, 404 recurso inexistente, 422 regra de dominio violada. O contrato completo esta na issue #1 e no ADR 0008.
 
 ## Ambiente Python
 

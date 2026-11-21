@@ -4,6 +4,7 @@ from typing import Optional
 
 from domain.despesa import Despesa
 from domain.grupo import Grupo
+from domain.pagamento import Pagamento
 from domain.vaquinha import Vaquinha
 
 
@@ -64,3 +65,16 @@ class VaquinhaRepositoryEmMemoria:
         return [
             v for v in self._vaquinhas.values() if v.grupo_id == grupo_id
         ]
+
+
+class PagamentoRepositoryEmMemoria:
+    def __init__(self) -> None:
+        self._pagamentos: list[Pagamento] = []
+
+    def adicionar(self, pagamento: Pagamento) -> Pagamento:
+        pagamento.id = len(self._pagamentos) + 1
+        self._pagamentos.append(pagamento)
+        return pagamento
+
+    def listar_por_grupo(self, grupo_id: int) -> list[Pagamento]:
+        return [p for p in self._pagamentos if p.grupo_id == grupo_id]

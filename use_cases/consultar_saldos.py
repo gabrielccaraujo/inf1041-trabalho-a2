@@ -1,5 +1,6 @@
 from domain.despesa import DespesaRepository
 from domain.grupo import GrupoRepository
+from domain.pagamento import PagamentoRepository
 from domain.saldos import CalculadoraDeSaldos, SaldosDoGrupo
 from use_cases.comum import obter_grupo_ou_falhar
 
@@ -8,10 +9,14 @@ class ConsultarSaldos:
     """Carrega o historico do Grupo e delega o calculo (ADR 0004)."""
 
     def __init__(
-        self, grupos: GrupoRepository, despesas: DespesaRepository
+        self,
+        grupos: GrupoRepository,
+        despesas: DespesaRepository,
+        pagamentos: PagamentoRepository,
     ) -> None:
         self._grupos = grupos
         self._despesas = despesas
+        self._pagamentos = pagamentos
         self._calculadora = CalculadoraDeSaldos()
 
     def executar(self, grupo_id: int) -> SaldosDoGrupo:
@@ -19,4 +24,5 @@ class ConsultarSaldos:
         return self._calculadora.calcular(
             membros=[m.id for m in grupo.membros],
             despesas=self._despesas.listar_por_grupo(grupo.id),
+            pagamentos=self._pagamentos.listar_por_grupo(grupo.id),
         )

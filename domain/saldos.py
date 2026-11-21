@@ -48,7 +48,7 @@ class CalculadoraDeSaldos:
         self,
         membros: list[int],
         despesas: Iterable[Despesa],
-        pagamentos: Iterable[PagamentoDeclarado] = (),
+        pagamentos: Iterable[PagamentoDeclarado],
     ) -> SaldosDoGrupo:
         saldos = {membro_id: ZERO for membro_id in membros}
         for despesa in despesas:

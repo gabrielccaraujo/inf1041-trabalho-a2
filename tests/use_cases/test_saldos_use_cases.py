@@ -74,6 +74,10 @@ def transferencias_em_centavos(resultado):
     ]
 
 
+def soma_dos_saldos(resultado):
+    return sum(s.valor.centavos for s in resultado.saldos)
+
+
 def saldos_apos_transferencias(resultado):
     """Aplica as Transferencias sugeridas como se fossem pagas."""
     saldos = dict(saldos_em_centavos(resultado))
@@ -106,6 +110,7 @@ def test_saldo_e_o_que_pagou_menos_as_cotas_com_sobra_de_centavos(
         (carla, -3333),
         (davi, 0),
     ]
+    assert soma_dos_saldos(resultado) == 0
     assert transferencias_em_centavos(resultado) == [
         (bruno, ana, 3333),
         (carla, ana, 3333),
@@ -121,7 +126,28 @@ def historico_misto(lancar, membros):
     lancar(davi, 101, DivisaoIgualitaria(membros=(ana, bruno, carla, davi)))
 
 
-def test_saldos_refletem_as_cotas_da_divisao_por_valores(
+def test_saldos_com_divisao_por_valores_sao_exatamente_as_cotas(
+    lancar, consultar, membros
+):
+    ana, bruno, carla, davi = membros
+    lancar(
+        ana,
+        10000,
+        DivisaoPorValores(cotas=((ana, 1000), (bruno, 2500), (carla, 6500))),
+    )
+
+    resultado = consultar()
+
+    assert saldos_em_centavos(resultado) == [
+        (ana, 9000),
+        (bruno, -2500),
+        (carla, -6500),
+        (davi, 0),
+    ]
+    assert soma_dos_saldos(resultado) == 0
+
+
+def test_saldos_de_historico_misto_somam_zero(
     historico_misto, consultar, membros
 ):
     ana, bruno, carla, davi = membros
@@ -134,7 +160,7 @@ def test_saldos_refletem_as_cotas_da_divisao_por_valores(
         (carla, -8358),
         (davi, -3924),
     ]
-    assert sum(centavos for _, centavos in saldos_em_centavos(resultado)) == 0
+    assert soma_dos_saldos(resultado) == 0
 
 
 def test_transferencias_sugeridas_pelo_maior_devedor_e_maior_credor(
@@ -160,10 +186,21 @@ def test_transferencias_sugeridas_zeram_os_saldos_em_no_maximo_n_menos_1(
     assert len(resultado.transferencias) <= len(membros) - 1
 
 
-def test_mesmo_historico_gera_as_mesmas_transferencias(
-    historico_misto, consultar
+def test_ordem_de_lancamento_nao_muda_saldos_nem_transferencias(
+    grupos, despesas, lancar, consultar, membros
 ):
-    assert consultar() == consultar()
+    ana, bruno, carla, davi = membros
+    lancar(davi, 101, DivisaoIgualitaria(membros=(ana, bruno, carla, davi)))
+    lancar(bruno, 9000, DivisaoPorValores(cotas=((carla, 5000), (davi, 4000))))
+    lancar(ana, 10000, DivisaoIgualitaria(membros=(ana, bruno, carla)))
+
+    resultado = consultar()
+
+    assert transferencias_em_centavos(resultado) == [
+        (carla, ana, 6640),
+        (davi, bruno, 3924),
+        (carla, bruno, 1718),
+    ]
 
 
 def test_empate_entre_devedores_segue_a_ordem_dos_membros(
@@ -174,6 +211,7 @@ def test_empate_entre_devedores_segue_a_ordem_dos_membros(
 
     resultado = consultar()
 
+    assert soma_dos_saldos(resultado) == 0
     assert transferencias_em_centavos(resultado) == [
         (ana, davi, 100),
         (bruno, davi, 100),

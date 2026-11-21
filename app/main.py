@@ -6,6 +6,7 @@ from app.routes.despesa_routes import create_despesa_blueprint
 from app.routes.erros import registrar_tratadores_de_erro
 from app.routes.grupo_routes import create_grupo_blueprint
 from app.routes.health_routes import create_health_blueprint
+from app.routes.saldo_routes import create_saldo_blueprint
 from infra.db.database import DEFAULT_DB_PATH, Database
 from infra.repositories.despesa_repository_sqlite import (
     DespesaRepositorySqlite,
@@ -13,6 +14,7 @@ from infra.repositories.despesa_repository_sqlite import (
 from infra.repositories.grupo_repository_sqlite import GrupoRepositorySqlite
 from use_cases.adicionar_membro import AdicionarMembro
 from use_cases.consultar_grupo import ConsultarGrupo
+from use_cases.consultar_saldos import ConsultarSaldos
 from use_cases.criar_grupo import CriarGrupo
 from use_cases.lancar_despesa import LancarDespesa
 from use_cases.listar_despesas import ListarDespesas
@@ -40,6 +42,9 @@ def create_app(db_path=DEFAULT_DB_PATH) -> Flask:
             LancarDespesa(grupos, despesas, relogio=date.today),
             ListarDespesas(grupos, despesas),
         )
+    )
+    app.register_blueprint(
+        create_saldo_blueprint(ConsultarSaldos(grupos, despesas))
     )
     app.register_blueprint(create_health_blueprint(database.ping))
 

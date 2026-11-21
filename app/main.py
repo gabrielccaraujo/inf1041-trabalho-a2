@@ -2,6 +2,7 @@ from datetime import date
 
 from flask import Flask
 
+from app.routes.apoiador_routes import create_apoiador_blueprint
 from app.routes.despesa_routes import create_despesa_blueprint
 from app.routes.erros import registrar_tratadores_de_erro
 from app.routes.grupo_routes import create_grupo_blueprint
@@ -21,6 +22,7 @@ from infra.repositories.vaquinha_repository_sqlite import (
     VaquinhaRepositorySqlite,
 )
 from use_cases.adicionar_membro import AdicionarMembro
+from use_cases.consultar_apoiadores import ConsultarApoiadores
 from use_cases.consultar_grupo import ConsultarGrupo
 from use_cases.consultar_saldos import ConsultarSaldos
 from use_cases.contribuir import Contribuir
@@ -75,6 +77,9 @@ def create_app(db_path=DEFAULT_DB_PATH) -> Flask:
             EncerrarVaquinha(grupos, vaquinhas),
             ListarVaquinhas(grupos, vaquinhas),
         )
+    )
+    app.register_blueprint(
+        create_apoiador_blueprint(ConsultarApoiadores(grupos, vaquinhas))
     )
     app.register_blueprint(create_health_blueprint(database.ping))
 

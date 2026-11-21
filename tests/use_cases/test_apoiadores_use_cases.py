@@ -37,8 +37,13 @@ def grupo(grupos):
 
 @pytest.fixture
 def membro(grupo):
+    """Id do Membro pelo nome."""
     ids = {m.nome: m.id for m in grupo.membros}
-    return ids.__getitem__
+
+    def membro(nome):
+        return ids[nome]
+
+    return membro
 
 
 @pytest.fixture

@@ -77,7 +77,7 @@ Vaquinha que não aceita mais Contribuições. Uma Vaquinha só é encerrada por
 _Avoid_: vaquinha finalizada, vaquinha concluída
 
 **Apoiador**:
-Membro que fez ao menos uma Contribuição. Os Apoiadores são ordenados pelo total contribuído, depois pelo número de Vaquinhas apoiadas.
+Membro que fez ao menos uma Contribuição. Os Apoiadores são ordenados pelo total contribuído, depois pelo número de Vaquinhas apoiadas, depois pelo nome.
 _Avoid_: doador, colaborador, ajudante
 
 **Reconhecimento de ajuda**:

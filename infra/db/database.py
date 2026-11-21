@@ -35,6 +35,26 @@ CREATE TABLE IF NOT EXISTS cotas (
     valor_centavos INTEGER NOT NULL,
     PRIMARY KEY (despesa_id, posicao)
 );
+
+CREATE TABLE IF NOT EXISTS vaquinhas (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    grupo_id INTEGER NOT NULL REFERENCES grupos (id),
+    titulo TEXT NOT NULL,
+    descricao TEXT NOT NULL,
+    meta_centavos INTEGER NOT NULL,
+    beneficiario_id INTEGER NOT NULL REFERENCES membros (id),
+    encerrada INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS contribuicoes (
+    vaquinha_id INTEGER NOT NULL REFERENCES vaquinhas (id),
+    posicao INTEGER NOT NULL,
+    membro_id INTEGER NOT NULL REFERENCES membros (id),
+    valor_centavos INTEGER NOT NULL,
+    meio TEXT NOT NULL,
+    data TEXT NOT NULL,
+    PRIMARY KEY (vaquinha_id, posicao)
+);
 """
 
 

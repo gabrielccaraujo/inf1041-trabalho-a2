@@ -1,11 +1,14 @@
 """Leitura e validacao de formato do corpo JSON (erros viram 400)."""
 
 from datetime import date
-from typing import Any, Optional
+from enum import Enum
+from typing import Any, Optional, TypeVar
 
 from flask import request
 
 from app.routes.erros import RequisicaoInvalida
+
+OpcaoEnum = TypeVar("OpcaoEnum", bound=Enum)
 
 
 def corpo_json() -> dict[str, Any]:
@@ -76,6 +79,19 @@ def data_opcional(dados: dict[str, Any], campo: str) -> Optional[date]:
         raise RequisicaoInvalida(
             f"O campo '{campo}' deve ser uma data AAAA-MM-DD."
         ) from None
+
+
+def opcao_obrigatoria(
+    dados: dict[str, Any], campo: str, opcoes: type[OpcaoEnum]
+) -> OpcaoEnum:
+    """Le um texto que deve ser o valor de um dos membros do Enum."""
+    valor = dados.get(campo)
+    validos = [opcao.value for opcao in opcoes]
+    if valor not in validos:
+        raise RequisicaoInvalida(
+            f"O campo '{campo}' deve ser um de: {', '.join(validos)}."
+        )
+    return opcoes(valor)
 
 
 def _e_inteiro(valor: Any) -> bool:

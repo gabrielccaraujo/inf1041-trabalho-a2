@@ -66,7 +66,7 @@ def cotas_em_centavos(despesa):
     return [(c.membro_id, c.valor.centavos) for c in despesa.cotas]
 
 
-def lancar_padrao(lancar, grupo_id, pagador_id, membros, **mudancas):
+def lancar_padrao(lancar, grupo_id, pagador_id, membros=(), **mudancas):
     dados = dict(
         descricao="Conta de luz",
         valor_centavos=10000,
@@ -214,7 +214,6 @@ def lancar_por_valores(lancar, grupo_id, pagador_id, cotas, **mudancas):
         lancar,
         grupo_id,
         pagador_id,
-        [],
         divisao=DivisaoPorValores(cotas=tuple(cotas)),
         **mudancas,
     )

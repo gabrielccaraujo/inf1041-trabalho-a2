@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Callable, Optional, Protocol
 
-from domain.despesa import Despesa, DespesaRepository, Divisao
+from domain.despesa import Cota, Despesa, DespesaRepository, Divisao
 from domain.erros import RegraDeDominioViolada
 from domain.grupo import GrupoRepository
 from domain.valor import Valor
@@ -33,7 +33,11 @@ class DivisaoPorValores:
 
     def dividir(self, valor: Valor) -> Divisao:
         return Divisao.por_valores(
-            [(membro_id, Valor(c)) for membro_id, c in self.cotas], valor
+            [
+                Cota(membro_id, Valor(centavos))
+                for membro_id, centavos in self.cotas
+            ],
+            valor,
         )
 
 

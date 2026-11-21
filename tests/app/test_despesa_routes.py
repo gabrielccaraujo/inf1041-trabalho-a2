@@ -23,13 +23,13 @@ def grupo(client):
     return grupo_id, ids
 
 
-def corpo_despesa(pagador, membros, /, **mudancas):
+def corpo_despesa(pagador, membros=(), /, **mudancas):
     corpo = {
         "descricao": "Conta de luz",
         "valor_centavos": 10000,
         "pagador_id": pagador,
         "data": "2026-11-01",
-        "divisao": {"modo": "igualitaria", "membros": membros},
+        "divisao": {"modo": "igualitaria", "membros": list(membros)},
     }
     corpo.update(mudancas)
     return corpo
@@ -151,7 +151,7 @@ def test_divisao_por_valores_responde_201_e_aparece_na_listagem(
     resposta = client.post(
         f"/api/grupos/{grupo_id}/despesas",
         json=corpo_despesa(
-            ana, [], divisao=por_valores((bruno, 7000), (carla, 3000))
+            ana, divisao=por_valores((bruno, 7000), (carla, 3000))
         ),
     )
 
@@ -171,8 +171,31 @@ def test_cotas_que_nao_somam_o_valor_respondem_422(client, grupo):
     resposta = client.post(
         f"/api/grupos/{grupo_id}/despesas",
         json=corpo_despesa(
-            ana, [], divisao=por_valores((bruno, 7000), (carla, 2000))
+            ana, divisao=por_valores((bruno, 7000), (carla, 2000))
         ),
+    )
+
+    assert resposta.status_code == 422
+    assert "erro" in resposta.get_json()
+
+
+@pytest.mark.parametrize(
+    "cotas",
+    [
+        [(1, 10000), (2, 0)],
+        [(1, 5000), (1, 5000)],
+        [(1, 5000), (999, 5000)],
+    ],
+    ids=["cota-zero", "membro-repetido", "membro-de-fora"],
+)
+def test_regra_de_cotas_violada_responde_422(client, grupo, cotas):
+    grupo_id, membros = grupo
+    ids = {1: membros[1], 2: membros[2], 999: 999}
+    cotas = [(ids[membro], valor) for membro, valor in cotas]
+
+    resposta = client.post(
+        f"/api/grupos/{grupo_id}/despesas",
+        json=corpo_despesa(membros[0], divisao=por_valores(*cotas)),
     )
 
     assert resposta.status_code == 422
@@ -198,7 +221,7 @@ def test_cotas_malformadas_respondem_400(client, grupo, divisao):
 
     resposta = client.post(
         f"/api/grupos/{grupo_id}/despesas",
-        json=corpo_despesa(ana, [], divisao=divisao),
+        json=corpo_despesa(ana, divisao=divisao),
     )
 
     assert resposta.status_code == 400

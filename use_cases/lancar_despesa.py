@@ -3,10 +3,12 @@ from datetime import date
 from typing import Callable, Optional, Protocol
 
 from domain.despesa import Cota, Despesa, DespesaRepository, Divisao
-from domain.erros import RegraDeDominioViolada
 from domain.grupo import GrupoRepository
 from domain.valor import Valor
-from use_cases.comum import obter_grupo_ou_falhar
+from use_cases.comum import (
+    garantir_membros_do_grupo,
+    obter_grupo_ou_falhar,
+)
 
 
 class PedidoDeDivisao(Protocol):
@@ -64,15 +66,9 @@ class LancarDespesa:
         grupo = obter_grupo_ou_falhar(self._grupos, grupo_id)
         valor = Valor(valor_centavos)
         divisao_da_despesa = divisao.dividir(valor)
-        de_fora = [
-            m
-            for m in [pagador_id, *divisao_da_despesa.membros()]
-            if not grupo.tem_membro(m)
-        ]
-        if de_fora:
-            raise RegraDeDominioViolada(
-                f"Membro {de_fora[0]} nao pertence ao Grupo {grupo.id}."
-            )
+        garantir_membros_do_grupo(
+            grupo, [pagador_id, *divisao_da_despesa.membros()]
+        )
         despesa = Despesa(
             grupo_id=grupo.id,
             descricao=descricao,

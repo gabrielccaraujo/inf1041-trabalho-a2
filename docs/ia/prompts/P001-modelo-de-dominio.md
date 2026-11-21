@@ -85,5 +85,5 @@ Em todas as perguntas o grupo aceitou a recomendacao da IA. A justificativa de c
 - Resumo da resposta: sessao de 12 perguntas, uma por vez, cada uma com recomendacao; modelo consolidado e confirmado pelo grupo antes da escrita dos documentos.
 - Arquivos alterados: `GLOSSARY.md` (novo), `docs/adr/0001` a `0009` (novos), este registro.
 - Testes e resultados: nao se aplica (nenhum codigo alterado).
-- Commit resultante: (preencher apos o commit)
+- Commit resultante: e90c380
 - Observacoes: o prompt dizia "Front: React"; a IA verificou que o front e Next.js (React) com proxy `/api`, o que dispensa CORS (ADR 0008). O placeholder `Task` permanece ate o primeiro recurso real ser implementado.

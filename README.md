@@ -10,15 +10,19 @@ Arquitetura em camadas: as dependencias apontam para dentro (`app` -> `use_cases
 
 ```
 app/
-  routes/task_routes.py              # rotas HTTP de tarefas (Flask Blueprint)
+  routes/grupo_routes.py             # rotas HTTP de Grupo e Membros (Flask Blueprint)
   routes/health_routes.py            # GET /api/health
+  routes/erros.py                    # traducao de erros para {"erro": ...} (400/404/422)
+  routes/requisicao.py               # leitura e validacao de formato do corpo JSON
   main.py                            # create_app(): monta infra -> casos de uso -> rotas
-domain/task.py                       # entidade Task, regras de negocio e porta TaskRepository
-use_cases/task_use_case.py           # casos de uso (criar, listar, buscar, atualizar, remover)
+domain/
+  grupo.py                           # raiz Grupo, entidade Membro e porta GrupoRepository
+  erros.py                           # excecoes de dominio (regra violada, nao encontrado)
+use_cases/                           # um caso de uso por acao (CriarGrupo, AdicionarMembro, ...)
 infra/
-  repositories/task_repository_sqlite.py  # implementacao SQLite do TaskRepository
+  repositories/grupo_repository_sqlite.py  # implementacao SQLite do GrupoRepository
   db/database.py                     # conexao SQLite (segura entre threads) e schema
-tests/                               # testes por camada (domain, use_cases, infra, app)
+tests/                               # testes por seam (use_cases com repositorio em memoria, app via API)
 docs/ia/prompts/                     # prompts usados no desenvolvimento, vinculados aos commits
 requirements.txt
 ```
@@ -30,7 +34,7 @@ python -m app.main      # sobe a API em http://127.0.0.1:5000
 python -m pytest        # roda os testes
 ```
 
-Endpoints: `GET /api/health` (200 se API e banco ok, 503 se o banco falhar), `GET /tasks`, `POST /tasks` (`{"title": "..."}`), `GET /tasks/<id>`, `PATCH /tasks/<id>` (`{"title": "...", "done": true}`), `DELETE /tasks/<id>`.
+Endpoints: `GET /api/health` (200 se API e banco ok, 503 se o banco falhar), `POST /api/grupos` (`{"nome": "..."}`), `GET /api/grupos/<id>` (Grupo com Membros), `POST /api/grupos/<id>/membros` (`{"nome": "...", "chave_pix": "..."}`, Chave Pix opcional). Erros vem como `{"erro": "mensagem"}`: 400 corpo malformado, 404 recurso inexistente, 422 regra de dominio violada. O contrato completo esta na issue #1 e no ADR 0008.
 
 ## Ambiente Python
 

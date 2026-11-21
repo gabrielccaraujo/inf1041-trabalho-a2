@@ -52,7 +52,12 @@ def test_ciclo_da_vaquinha_persiste_ida_e_volta(client, grupo):
 
     resposta = contribuir(client, grupo_id, vaquinha["id"], bruno, 7000)
     assert resposta.status_code == 201
-    assert resposta.get_json()["total_arrecadado_centavos"] == 7000
+    assert resposta.get_json() == {
+        "membro_id": bruno,
+        "valor_centavos": 7000,
+        "meio": "pix",
+        "data": date.today().isoformat(),
+    }
     contribuir(client, grupo_id, vaquinha["id"], carla, 5000, "dinheiro")
 
     encerrada = client.post(
@@ -91,14 +96,29 @@ def test_ciclo_da_vaquinha_persiste_ida_e_volta(client, grupo):
 
 
 def test_contribuicoes_nao_alteram_os_saldos(client, grupo):
-    grupo_id, (ana, bruno, _) = grupo
+    grupo_id, (ana, bruno, carla) = grupo
+    client.post(
+        f"/api/grupos/{grupo_id}/despesas",
+        json={
+            "descricao": "Luz",
+            "valor_centavos": 9000,
+            "pagador_id": ana,
+            "divisao": {"modo": "igualitaria", "membros": [ana, bruno, carla]},
+        },
+    )
+    antes = client.get(f"/api/grupos/{grupo_id}/saldos").get_json()
     vaquinha_id = criar_vaquinha(client, grupo_id, ana).get_json()["id"]
+
     contribuir(client, grupo_id, vaquinha_id, bruno, 5000)
+    contribuir(client, grupo_id, vaquinha_id, carla, 2500)
 
-    saldos = client.get(f"/api/grupos/{grupo_id}/saldos").get_json()
-
-    assert [s["saldo_centavos"] for s in saldos["saldos"]] == [0, 0, 0]
-    assert saldos["transferencias"] == []
+    depois = client.get(f"/api/grupos/{grupo_id}/saldos").get_json()
+    assert depois == antes
+    assert [s["saldo_centavos"] for s in antes["saldos"]] == [
+        6000,
+        -3000,
+        -3000,
+    ]
 
 
 @pytest.mark.parametrize(
@@ -135,9 +155,11 @@ def test_regras_de_contribuicao_e_encerramento_respondem_422(client, grupo):
 @pytest.mark.parametrize(
     "corpo",
     [
-        {"titulo": "G", "meta_centavos": "10", "beneficiario_id": 1},
-        {"titulo": "G", "meta_centavos": 10},
-        {"meta_centavos": 10, "beneficiario_id": 1},
+        {"titulo": "G", "descricao": "", "meta_centavos": "10",
+         "beneficiario_id": 1},
+        {"titulo": "G", "descricao": "", "meta_centavos": 10},
+        {"descricao": "", "meta_centavos": 10, "beneficiario_id": 1},
+        {"titulo": "G", "meta_centavos": 10, "beneficiario_id": 1},
         {"titulo": "G", "descricao": 5, "meta_centavos": 10,
          "beneficiario_id": 1},
     ],

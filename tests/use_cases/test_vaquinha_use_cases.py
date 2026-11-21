@@ -15,6 +15,7 @@ from use_cases.consultar_saldos import ConsultarSaldos
 from use_cases.contribuir import Contribuir
 from use_cases.criar_vaquinha import CriarVaquinha
 from use_cases.encerrar_vaquinha import EncerrarVaquinha
+from use_cases.lancar_despesa import DivisaoIgualitaria, LancarDespesa
 from use_cases.listar_vaquinhas import ListarVaquinhas
 
 
@@ -71,7 +72,7 @@ def test_criar_vaquinha_aberta_com_meta_e_beneficiario(criar, membros):
     assert vaquinha.beneficiario_id == membros[0]
     assert vaquinha.encerrada is False
     assert vaquinha.total_arrecadado().centavos == 0
-    assert vaquinha.contribuicoes == []
+    assert vaquinha.contribuicoes == ()
 
 
 @pytest.mark.parametrize("meta_centavos", [0, -1])
@@ -93,7 +94,9 @@ def test_beneficiario_de_fora_do_grupo_e_rejeitado(criar):
         criar(beneficiario_id=999)
 
 
-def test_criar_vaquinha_em_grupo_inexistente(grupos, vaquinhas, membros):
+def test_criar_vaquinha_em_grupo_inexistente_nao_e_encontrado(
+    grupos, vaquinhas, membros
+):
     with pytest.raises(NaoEncontrado):
         CriarVaquinha(grupos, vaquinhas).executar(
             99,
@@ -121,7 +124,7 @@ def contribuir(grupos, vaquinhas, grupo):
     return contribuir
 
 
-def contribuicoes_em_centavos(vaquinha):
+def contribuicoes_resumidas(vaquinha):
     return [
         (c.membro_id, c.valor.centavos, c.meio, c.data)
         for c in vaquinha.contribuicoes
@@ -129,27 +132,34 @@ def contribuicoes_em_centavos(vaquinha):
 
 
 def test_contribuir_aumenta_o_total_arrecadado(
-    contribuir, vaquinha, membros
+    contribuir, vaquinhas, vaquinha, membros
 ):
     _, bruno, carla = membros
 
     contribuir(vaquinha.id, bruno, 3000, Meio.PIX)
-    atualizada = contribuir(vaquinha.id, carla, 2000, Meio.DINHEIRO)
+    contribuicao = contribuir(vaquinha.id, carla, 2000, Meio.DINHEIRO)
+
+    assert (contribuicao.membro_id, contribuicao.valor.centavos) == (
+        carla,
+        2000,
+    )
+    atualizada = vaquinhas.buscar(vaquinha.id)
 
     assert atualizada.total_arrecadado().centavos == 5000
-    assert contribuicoes_em_centavos(atualizada) == [
+    assert contribuicoes_resumidas(atualizada) == [
         (bruno, 3000, Meio.PIX, HOJE),
         (carla, 2000, Meio.DINHEIRO, HOJE),
     ]
 
 
 def test_contribuir_acima_da_meta_e_permitido_e_nao_encerra(
-    contribuir, vaquinha, membros
+    contribuir, vaquinhas, vaquinha, membros
 ):
     _, bruno, carla = membros
 
     contribuir(vaquinha.id, bruno, 10000)
-    atualizada = contribuir(vaquinha.id, carla, 500)
+    contribuir(vaquinha.id, carla, 500)
+    atualizada = vaquinhas.buscar(vaquinha.id)
 
     assert atualizada.total_arrecadado().centavos == 10500
     assert atualizada.encerrada is False
@@ -183,10 +193,12 @@ def test_contribuicao_rejeitada_nao_entra_na_vaquinha(
     with pytest.raises(RegraDeDominioViolada):
         contribuir(vaquinha.id, membros[0], 1000)
 
-    assert vaquinhas.buscar(vaquinha.id).contribuicoes == []
+    assert vaquinhas.buscar(vaquinha.id).contribuicoes == ()
 
 
-def test_contribuir_em_vaquinha_inexistente(contribuir, membros):
+def test_contribuir_em_vaquinha_inexistente_nao_e_encontrada(
+    contribuir, membros
+):
     with pytest.raises(NaoEncontrado):
         contribuir(99, membros[1], 1000)
 
@@ -214,7 +226,9 @@ def encerrar(grupos, vaquinhas, grupo):
     return lambda vaquinha_id: use_case.executar(grupo.id, vaquinha_id)
 
 
-def test_encerrar_vaquinha(encerrar, vaquinhas, vaquinha):
+def test_encerrar_vaquinha_muda_o_status_para_encerrada(
+    encerrar, vaquinhas, vaquinha
+):
     encerrada = encerrar(vaquinha.id)
 
     assert encerrada.encerrada is True
@@ -237,7 +251,7 @@ def test_encerrar_vaquinha_ja_encerrada_e_rejeitado(encerrar, vaquinha):
         encerrar(vaquinha.id)
 
 
-def test_encerrar_vaquinha_inexistente(encerrar):
+def test_encerrar_vaquinha_inexistente_nao_e_encontrada(encerrar):
     with pytest.raises(NaoEncontrado):
         encerrar(99)
 
@@ -269,7 +283,9 @@ def test_listar_vaquinhas_do_grupo_com_total_status_e_contribuicoes(
     ]
 
 
-def test_listar_vaquinhas_de_grupo_inexistente(grupos, vaquinhas):
+def test_listar_vaquinhas_de_grupo_inexistente_nao_e_encontrado(
+    grupos, vaquinhas
+):
     with pytest.raises(NaoEncontrado):
         ListarVaquinhas(grupos, vaquinhas).executar(99)
 
@@ -277,11 +293,20 @@ def test_listar_vaquinhas_de_grupo_inexistente(grupos, vaquinhas):
 def test_contribuicoes_nao_alteram_os_saldos(
     grupos, grupo, contribuir, vaquinha, membros
 ):
-    contribuir(vaquinha.id, membros[1], 5000)
-
-    saldos = ConsultarSaldos(grupos, DespesaRepositoryEmMemoria()).executar(
-        grupo.id
+    ana, bruno, carla = membros
+    despesas = DespesaRepositoryEmMemoria()
+    LancarDespesa(grupos, despesas, relogio=lambda: HOJE).executar(
+        grupo.id,
+        descricao="Luz",
+        valor_centavos=9000,
+        pagador_id=ana,
+        divisao=DivisaoIgualitaria(membros=(ana, bruno, carla)),
     )
+    consultar = ConsultarSaldos(grupos, despesas)
+    antes = consultar.executar(grupo.id)
 
-    assert [s.valor.centavos for s in saldos.saldos] == [0, 0, 0]
-    assert saldos.transferencias == []
+    contribuir(vaquinha.id, bruno, 5000)
+    contribuir(vaquinha.id, carla, 2500)
+
+    assert consultar.executar(grupo.id) == antes
+    assert [s.valor.centavos for s in antes.saldos] == [6000, -3000, -3000]

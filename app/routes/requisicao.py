@@ -8,7 +8,7 @@ from flask import request
 
 from app.routes.erros import RequisicaoInvalida
 
-E = TypeVar("E", bound=Enum)
+OpcaoEnum = TypeVar("OpcaoEnum", bound=Enum)
 
 
 def corpo_json() -> dict[str, Any]:
@@ -82,8 +82,8 @@ def data_opcional(dados: dict[str, Any], campo: str) -> Optional[date]:
 
 
 def opcao_obrigatoria(
-    dados: dict[str, Any], campo: str, opcoes: type[E]
-) -> E:
+    dados: dict[str, Any], campo: str, opcoes: type[OpcaoEnum]
+) -> OpcaoEnum:
     """Le um texto que deve ser o valor de um dos membros do Enum."""
     valor = dados.get(campo)
     validos = [opcao.value for opcao in opcoes]

@@ -5,14 +5,22 @@ from app.routes.requisicao import (
     inteiro_obrigatorio,
     opcao_obrigatoria,
     texto_obrigatorio,
-    texto_opcional,
 )
 from domain.meio import Meio
-from domain.vaquinha import Vaquinha
+from domain.vaquinha import Contribuicao, Vaquinha
 from use_cases.contribuir import Contribuir
 from use_cases.criar_vaquinha import CriarVaquinha
 from use_cases.encerrar_vaquinha import EncerrarVaquinha
 from use_cases.listar_vaquinhas import ListarVaquinhas
+
+
+def contribuicao_json(contribuicao: Contribuicao) -> dict:
+    return {
+        "membro_id": contribuicao.membro_id,
+        "valor_centavos": contribuicao.valor.centavos,
+        "meio": contribuicao.meio.value,
+        "data": contribuicao.data.isoformat(),
+    }
 
 
 def vaquinha_json(vaquinha: Vaquinha) -> dict:
@@ -25,13 +33,7 @@ def vaquinha_json(vaquinha: Vaquinha) -> dict:
         "status": "encerrada" if vaquinha.encerrada else "aberta",
         "total_arrecadado_centavos": vaquinha.total_arrecadado().centavos,
         "contribuicoes": [
-            {
-                "membro_id": c.membro_id,
-                "valor_centavos": c.valor.centavos,
-                "meio": c.meio.value,
-                "data": c.data.isoformat(),
-            }
-            for c in vaquinha.contribuicoes
+            contribuicao_json(c) for c in vaquinha.contribuicoes
         ],
     }
 
@@ -54,7 +56,7 @@ def create_vaquinha_blueprint(
         vaquinha = criar_vaquinha.executar(
             grupo_id,
             titulo=texto_obrigatorio(dados, "titulo"),
-            descricao=texto_opcional(dados, "descricao") or "",
+            descricao=texto_obrigatorio(dados, "descricao"),
             meta_centavos=inteiro_obrigatorio(dados, "meta_centavos"),
             beneficiario_id=inteiro_obrigatorio(dados, "beneficiario_id"),
         )
@@ -69,14 +71,14 @@ def create_vaquinha_blueprint(
     @bp.post("/<int:vaquinha_id>/contribuicoes")
     def contribuir_na_vaquinha(grupo_id: int, vaquinha_id: int):
         dados = corpo_json()
-        vaquinha = contribuir.executar(
+        contribuicao = contribuir.executar(
             grupo_id,
             vaquinha_id,
             membro_id=inteiro_obrigatorio(dados, "membro_id"),
             valor_centavos=inteiro_obrigatorio(dados, "valor_centavos"),
             meio=opcao_obrigatoria(dados, "meio", Meio),
         )
-        return jsonify(vaquinha_json(vaquinha)), 201
+        return jsonify(contribuicao_json(contribuicao)), 201
 
     @bp.post("/<int:vaquinha_id>/encerrar")
     def encerrar(grupo_id: int, vaquinha_id: int):

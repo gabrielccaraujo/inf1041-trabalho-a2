@@ -4,7 +4,7 @@ from typing import Callable
 from domain.grupo import GrupoRepository
 from domain.meio import Meio
 from domain.valor import Valor
-from domain.vaquinha import Vaquinha, VaquinhaRepository
+from domain.vaquinha import Contribuicao, VaquinhaRepository
 from use_cases.comum import (
     garantir_membros_do_grupo,
     obter_grupo_ou_falhar,
@@ -30,13 +30,14 @@ class Contribuir:
         membro_id: int,
         valor_centavos: int,
         meio: Meio,
-    ) -> Vaquinha:
+    ) -> Contribuicao:
         grupo = obter_grupo_ou_falhar(self._grupos, grupo_id)
         vaquinha = obter_vaquinha_ou_falhar(
             self._vaquinhas, grupo, vaquinha_id
         )
         garantir_membros_do_grupo(grupo, [membro_id])
-        vaquinha.contribuir(
+        contribuicao = vaquinha.contribuir(
             membro_id, Valor(valor_centavos), meio, self._relogio()
         )
-        return self._vaquinhas.salvar(vaquinha)
+        self._vaquinhas.salvar(vaquinha)
+        return contribuicao

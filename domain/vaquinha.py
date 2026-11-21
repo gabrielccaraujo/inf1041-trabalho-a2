@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import date
 from typing import Optional, Protocol
 
@@ -27,7 +27,8 @@ class Contribuicao:
 class Vaquinha:
     """Raiz de agregado separada da Despesa: nao entra no Saldo.
 
-    Ver ADR 0005.
+    As Contribuicoes sao uma tupla: so se acrescenta, nunca se edita
+    nem remove (ADR 0005).
     """
 
     grupo_id: int
@@ -36,7 +37,7 @@ class Vaquinha:
     meta: Valor
     beneficiario_id: int
     encerrada: bool = False
-    contribuicoes: list[Contribuicao] = field(default_factory=list)
+    contribuicoes: tuple[Contribuicao, ...] = ()
     id: Optional[int] = None
 
     def __post_init__(self) -> None:
@@ -45,7 +46,8 @@ class Vaquinha:
             raise RegraDeDominioViolada(
                 "O titulo da Vaquinha nao pode ser vazio."
             )
-        self.descricao = (self.descricao or "").strip()
+        self.descricao = self.descricao.strip()
+        self.contribuicoes = tuple(self.contribuicoes)
         if self.meta <= Valor(0):
             raise RegraDeDominioViolada(
                 "A Meta da Vaquinha deve ser positiva."
@@ -63,7 +65,7 @@ class Vaquinha:
                 "O Beneficiario nao contribui na propria Vaquinha."
             )
         contribuicao = Contribuicao(membro_id, valor, meio, data)
-        self.contribuicoes.append(contribuicao)
+        self.contribuicoes = (*self.contribuicoes, contribuicao)
         return contribuicao
 
     def encerrar(self) -> None:

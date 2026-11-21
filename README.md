@@ -11,16 +11,20 @@ Arquitetura em camadas: as dependencias apontam para dentro (`app` -> `use_cases
 ```
 app/
   routes/grupo_routes.py             # rotas HTTP de Grupo e Membros (Flask Blueprint)
+  routes/despesa_routes.py           # rotas HTTP de Despesas
   routes/health_routes.py            # GET /api/health
   routes/erros.py                    # traducao de erros para {"erro": ...} (400/404/422)
   routes/requisicao.py               # leitura e validacao de formato do corpo JSON
   main.py                            # create_app(): monta infra -> casos de uso -> rotas
 domain/
   grupo.py                           # raiz Grupo, entidade Membro e porta GrupoRepository
+  despesa.py                         # raiz Despesa, VOs Divisao e Cota, porta DespesaRepository
+  valor.py                           # VO Valor em centavos inteiros (ADR 0002)
   erros.py                           # excecoes de dominio (regra violada, nao encontrado)
 use_cases/                           # um caso de uso por acao (CriarGrupo, AdicionarMembro, ...)
 infra/
   repositories/grupo_repository_sqlite.py  # implementacao SQLite do GrupoRepository
+  repositories/despesa_repository_sqlite.py  # implementacao SQLite do DespesaRepository
   db/database.py                     # conexao SQLite (segura entre threads) e schema
 tests/                               # testes por seam (use_cases com repositorio em memoria, app via API)
 docs/ia/prompts/                     # prompts usados no desenvolvimento, vinculados aos commits
@@ -34,7 +38,7 @@ python -m app.main      # sobe a API em http://127.0.0.1:5000
 python -m pytest        # roda os testes
 ```
 
-Endpoints: `GET /api/health` (200 se API e banco ok, 503 se o banco falhar), `POST /api/grupos` (`{"nome": "..."}`), `GET /api/grupos/<id>` (Grupo com Membros), `POST /api/grupos/<id>/membros` (`{"nome": "...", "chave_pix": "..."}`, Chave Pix opcional). Erros vem como `{"erro": "mensagem"}`: 400 corpo malformado, 404 recurso inexistente, 422 regra de dominio violada. O contrato completo esta na issue #1 e no ADR 0008.
+Endpoints: `GET /api/health` (200 se API e banco ok, 503 se o banco falhar), `POST /api/grupos` (`{"nome": "..."}`), `GET /api/grupos/<id>` (Grupo com Membros), `POST /api/grupos/<id>/membros` (`{"nome": "...", "chave_pix": "..."}`, Chave Pix opcional), `POST /api/grupos/<id>/despesas` (`{"descricao", "valor_centavos", "pagador_id", "data"?, "divisao": {"modo": "igualitaria", "membros": [...]}}`), `GET /api/grupos/<id>/despesas`. Erros vem como `{"erro": "mensagem"}`: 400 corpo malformado, 404 recurso inexistente, 422 regra de dominio violada. O contrato completo esta na issue #1 e no ADR 0008.
 
 ## Ambiente Python
 

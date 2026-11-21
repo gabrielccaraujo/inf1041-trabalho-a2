@@ -54,6 +54,9 @@ class Grupo:
         self.membros.append(membro)
         return membro
 
+    def tem_membro(self, membro_id: int) -> bool:
+        return any(m.id == membro_id for m in self.membros)
+
     @staticmethod
     def _garantir_nome_livre(nome: str, membros: list[Membro]) -> None:
         if any(m.nome.casefold() == nome.casefold() for m in membros):

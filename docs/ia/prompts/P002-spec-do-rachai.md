@@ -27,5 +27,5 @@
 - Publicacao: issue #1 (https://github.com/gabrielccaraujo/inf1041-trabalho-a2/issues/1), label `ready-for-agent`.
 - Arquivos alterados: este registro (a spec vive na issue, nao no repositorio).
 - Testes e resultados: nao se aplica (nenhum codigo alterado).
-- Commit resultante: (preencher apos o commit)
+- Commit resultante: 5862641
 - Observacoes: proximo passo do fluxo e `/to-tickets` sobre a issue #1.

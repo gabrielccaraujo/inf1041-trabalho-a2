@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import date
-from typing import Callable, Optional
+from typing import Callable, Optional, Protocol
 
 from domain.despesa import Despesa, DespesaRepository, Divisao
 from domain.erros import RegraDeDominioViolada
@@ -9,14 +9,20 @@ from domain.valor import Valor
 from use_cases.comum import obter_grupo_ou_falhar
 
 
+class PedidoDeDivisao(Protocol):
+    """Modo de divisao escolhido pelo cliente; cada modo usa uma fabrica."""
+
+    def dividir(self, valor: Valor) -> Divisao: ...
+
+
 @dataclass(frozen=True)
 class DivisaoIgualitaria:
     """Pedido de Divisao igualitaria entre os Membros informados."""
 
-    membros: list[int]
+    membros: tuple[int, ...]
 
     def dividir(self, valor: Valor) -> Divisao:
-        return Divisao.igualitaria(self.membros, valor)
+        return Divisao.igualitaria(list(self.membros), valor)
 
 
 class LancarDespesa:
@@ -36,7 +42,7 @@ class LancarDespesa:
         descricao: str,
         valor_centavos: int,
         pagador_id: int,
-        divisao: DivisaoIgualitaria,
+        divisao: PedidoDeDivisao,
         data: Optional[date] = None,
     ) -> Despesa:
         grupo = obter_grupo_ou_falhar(self._grupos, grupo_id)
@@ -45,7 +51,7 @@ class LancarDespesa:
         de_fora = [
             m
             for m in [pagador_id, *divisao_da_despesa.membros()]
-            if not grupo.pertence(m)
+            if not grupo.tem_membro(m)
         ]
         if de_fora:
             raise RegraDeDominioViolada(

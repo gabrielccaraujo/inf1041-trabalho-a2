@@ -54,7 +54,7 @@ class Grupo:
         self.membros.append(membro)
         return membro
 
-    def pertence(self, membro_id: int) -> bool:
+    def tem_membro(self, membro_id: int) -> bool:
         return any(m.id == membro_id for m in self.membros)
 
     @staticmethod

@@ -1,3 +1,5 @@
+from typing import Callable
+
 from flask import Blueprint, jsonify
 
 from app.routes.erros import RequisicaoInvalida
@@ -10,7 +12,11 @@ from app.routes.requisicao import (
     texto_obrigatorio,
 )
 from domain.despesa import Despesa
-from use_cases.lancar_despesa import DivisaoIgualitaria, LancarDespesa
+from use_cases.lancar_despesa import (
+    DivisaoIgualitaria,
+    LancarDespesa,
+    PedidoDeDivisao,
+)
 from use_cases.listar_despesas import ListarDespesas
 
 
@@ -28,13 +34,27 @@ def despesa_json(despesa: Despesa) -> dict:
     }
 
 
-def ler_divisao(dados: dict) -> DivisaoIgualitaria:
+def ler_divisao_igualitaria(divisao: dict) -> DivisaoIgualitaria:
+    return DivisaoIgualitaria(
+        membros=tuple(lista_de_inteiros(divisao, "membros"))
+    )
+
+
+LEITORES_DE_DIVISAO: dict[str, Callable[[dict], PedidoDeDivisao]] = {
+    "igualitaria": ler_divisao_igualitaria,
+}
+
+
+def ler_divisao(dados: dict) -> PedidoDeDivisao:
     divisao = objeto_obrigatorio(dados, "divisao")
-    modo = divisao.get("modo")
-    if modo == "igualitaria":
-        membros = lista_de_inteiros(divisao, "membros")
-        return DivisaoIgualitaria(membros=membros)
-    raise RequisicaoInvalida(f"Modo de Divisao desconhecido: {modo!r}.")
+    leitor = LEITORES_DE_DIVISAO.get(divisao.get("modo"))
+    if leitor is None:
+        raise RequisicaoInvalida(
+            "O modo da Divisao deve ser um de: "
+            + ", ".join(LEITORES_DE_DIVISAO)
+            + "."
+        )
+    return leitor(divisao)
 
 
 def create_despesa_blueprint(

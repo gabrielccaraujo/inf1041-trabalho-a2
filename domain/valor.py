@@ -10,9 +10,6 @@ class Valor:
     def __add__(self, outro: "Valor") -> "Valor":
         return Valor(self.centavos + outro.centavos)
 
-    def __sub__(self, outro: "Valor") -> "Valor":
-        return Valor(self.centavos - outro.centavos)
-
     def dividir_em(self, partes: int) -> list["Valor"]:
         """Divide em partes que somam o total; a sobra vai para as primeiras.
 

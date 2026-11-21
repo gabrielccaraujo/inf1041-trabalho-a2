@@ -51,14 +51,16 @@ class DespesaRepositorySqlite:
             "WHERE despesa_id = ? ORDER BY posicao",
             (linha["id"],),
         ).fetchall()
+        valor = Valor(linha["valor_centavos"])
         return Despesa(
             id=linha["id"],
             grupo_id=linha["grupo_id"],
             descricao=linha["descricao"],
-            valor=Valor(linha["valor_centavos"]),
+            valor=valor,
             pagador_id=linha["pagador_id"],
             data=date.fromisoformat(linha["data"]),
             divisao=Divisao(
+                valor,
                 tuple(
                     Cota(c["membro_id"], Valor(c["valor_centavos"]))
                     for c in cotas

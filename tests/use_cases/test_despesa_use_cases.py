@@ -62,16 +62,21 @@ def cotas_em_centavos(despesa):
     return [(c.membro_id, c.valor.centavos) for c in despesa.cotas]
 
 
+def lancar_padrao(lancar, grupo_id, pagador_id, membros, **mudancas):
+    dados = dict(
+        descricao="Conta de luz",
+        valor_centavos=10000,
+        pagador_id=pagador_id,
+        divisao=DivisaoIgualitaria(membros=tuple(membros)),
+    )
+    dados.update(mudancas)
+    return lancar.executar(grupo_id, **dados)
+
+
 def test_divisao_igualitaria_entrega_sobra_de_centavos_aos_primeiros(
     lancar, grupo, ana, bruno, carla
 ):
-    despesa = lancar.executar(
-        grupo.id,
-        descricao="Conta de luz",
-        valor_centavos=10000,
-        pagador_id=ana,
-        divisao=DivisaoIgualitaria(membros=[bruno, ana, carla]),
-    )
+    despesa = lancar_padrao(lancar, grupo.id, ana, [bruno, ana, carla])
 
     assert despesa.id is not None
     assert despesa.descricao == "Conta de luz"
@@ -85,51 +90,25 @@ def test_divisao_igualitaria_entrega_sobra_de_centavos_aos_primeiros(
 
 
 def test_pagador_pode_ficar_fora_da_divisao(lancar, grupo, ana, bruno, carla):
-    despesa = lancar.executar(
-        grupo.id,
-        descricao="Mercado",
-        valor_centavos=5000,
-        pagador_id=ana,
-        divisao=DivisaoIgualitaria(membros=[bruno, carla]),
+    despesa = lancar_padrao(
+        lancar, grupo.id, ana, [bruno, carla], valor_centavos=5000
     )
 
     assert cotas_em_centavos(despesa) == [(bruno, 2500), (carla, 2500)]
 
 
 def test_sem_data_a_despesa_usa_a_data_do_relogio(lancar, grupo, ana):
-    despesa = lancar.executar(
-        grupo.id,
-        descricao="Gas",
-        valor_centavos=9000,
-        pagador_id=ana,
-        divisao=DivisaoIgualitaria(membros=[ana]),
-    )
+    despesa = lancar_padrao(lancar, grupo.id, ana, [ana])
 
     assert despesa.data == HOJE
 
 
 def test_data_informada_e_mantida(lancar, grupo, ana):
-    despesa = lancar.executar(
-        grupo.id,
-        descricao="Gas",
-        valor_centavos=9000,
-        pagador_id=ana,
-        divisao=DivisaoIgualitaria(membros=[ana]),
-        data=date(2026, 10, 1),
+    despesa = lancar_padrao(
+        lancar, grupo.id, ana, [ana], data=date(2026, 10, 1)
     )
 
     assert despesa.data == date(2026, 10, 1)
-
-
-def lancar_padrao(lancar, grupo_id, pagador_id, membros, **mudancas):
-    dados = dict(
-        descricao="Conta de luz",
-        valor_centavos=10000,
-        pagador_id=pagador_id,
-        divisao=DivisaoIgualitaria(membros=membros),
-    )
-    dados.update(mudancas)
-    return lancar.executar(grupo_id, **dados)
 
 
 @pytest.mark.parametrize("valor_centavos", [0, -100])
@@ -161,7 +140,7 @@ def test_pagador_de_fora_do_grupo_e_rejeitado(lancar, grupo, ana):
         lancar_padrao(lancar, grupo.id, 999, [ana])
 
 
-def test_participante_de_fora_do_grupo_e_rejeitado(lancar, grupo, ana):
+def test_membro_da_divisao_de_fora_do_grupo_e_rejeitado(lancar, grupo, ana):
     with pytest.raises(RegraDeDominioViolada):
         lancar_padrao(lancar, grupo.id, ana, [ana, 999])
 
@@ -174,12 +153,12 @@ def test_membro_de_outro_grupo_e_rejeitado(grupos, lancar, grupo, ana):
         lancar_padrao(lancar, grupo.id, ana, [ana, intruso.id])
 
 
-def test_divisao_sem_participantes_e_rejeitada(lancar, grupo, ana):
+def test_divisao_sem_membros_e_rejeitada(lancar, grupo, ana):
     with pytest.raises(RegraDeDominioViolada):
         lancar_padrao(lancar, grupo.id, ana, [])
 
 
-def test_participante_repetido_na_divisao_e_rejeitado(
+def test_membro_repetido_na_divisao_e_rejeitado(
     lancar, grupo, ana, bruno
 ):
     with pytest.raises(RegraDeDominioViolada):

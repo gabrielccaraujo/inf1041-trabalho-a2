@@ -52,6 +52,15 @@ class Divisao:
             tuple(Cota(m, v) for m, v in zip(membros, valores_das_cotas)),
         )
 
+    @classmethod
+    def por_valores(
+        cls, cotas: list[tuple[int, Valor]], valor: Valor
+    ) -> "Divisao":
+        """Cada Membro com a Cota informada; toda Cota deve ser positiva."""
+        if any(valor_da_cota <= Valor(0) for _, valor_da_cota in cotas):
+            raise RegraDeDominioViolada("Toda Cota deve ser positiva.")
+        return cls(valor, tuple(Cota(m, v) for m, v in cotas))
+
     def membros(self) -> list[int]:
         return [cota.membro_id for cota in self.cotas]
 

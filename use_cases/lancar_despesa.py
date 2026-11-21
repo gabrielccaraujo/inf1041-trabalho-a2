@@ -25,6 +25,18 @@ class DivisaoIgualitaria:
         return Divisao.igualitaria(list(self.membros), valor)
 
 
+@dataclass(frozen=True)
+class DivisaoPorValores:
+    """Pedido de Divisao com a Cota de cada Membro: (membro_id, centavos)."""
+
+    cotas: tuple[tuple[int, int], ...]
+
+    def dividir(self, valor: Valor) -> Divisao:
+        return Divisao.por_valores(
+            [(membro_id, Valor(c)) for membro_id, c in self.cotas], valor
+        )
+
+
 class LancarDespesa:
     def __init__(
         self,

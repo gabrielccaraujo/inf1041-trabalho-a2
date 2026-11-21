@@ -8,12 +8,14 @@ from app.routes.requisicao import (
     data_opcional,
     inteiro_obrigatorio,
     lista_de_inteiros,
+    lista_de_objetos,
     objeto_obrigatorio,
     texto_obrigatorio,
 )
 from domain.despesa import Despesa
 from use_cases.lancar_despesa import (
     DivisaoIgualitaria,
+    DivisaoPorValores,
     LancarDespesa,
     PedidoDeDivisao,
 )
@@ -40,8 +42,21 @@ def ler_divisao_igualitaria(divisao: dict) -> DivisaoIgualitaria:
     )
 
 
+def ler_divisao_por_valores(divisao: dict) -> DivisaoPorValores:
+    return DivisaoPorValores(
+        cotas=tuple(
+            (
+                inteiro_obrigatorio(cota, "membro_id"),
+                inteiro_obrigatorio(cota, "valor_centavos"),
+            )
+            for cota in lista_de_objetos(divisao, "cotas")
+        )
+    )
+
+
 LEITORES_DE_DIVISAO: dict[str, Callable[[dict], PedidoDeDivisao]] = {
     "igualitaria": ler_divisao_igualitaria,
+    "por_valores": ler_divisao_por_valores,
 }
 
 

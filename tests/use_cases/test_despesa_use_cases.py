@@ -9,7 +9,11 @@ from tests.use_cases.fakes import (
 )
 from use_cases.adicionar_membro import AdicionarMembro
 from use_cases.criar_grupo import CriarGrupo
-from use_cases.lancar_despesa import DivisaoIgualitaria, LancarDespesa
+from use_cases.lancar_despesa import (
+    DivisaoIgualitaria,
+    DivisaoPorValores,
+    LancarDespesa,
+)
 from use_cases.listar_despesas import ListarDespesas
 
 HOJE = date(2026, 11, 20)
@@ -203,3 +207,70 @@ def test_listar_despesas_do_grupo_com_pagador_e_cotas(
 def test_listar_despesas_de_grupo_inexistente(grupos, despesas):
     with pytest.raises(NaoEncontrado):
         ListarDespesas(grupos, despesas).executar(99)
+
+
+def lancar_por_valores(lancar, grupo_id, pagador_id, cotas, **mudancas):
+    return lancar_padrao(
+        lancar,
+        grupo_id,
+        pagador_id,
+        [],
+        divisao=DivisaoPorValores(cotas=tuple(cotas)),
+        **mudancas,
+    )
+
+
+def test_divisao_por_valores_usa_as_cotas_informadas(
+    despesas, lancar, grupo, ana, bruno, carla
+):
+    despesa = lancar_por_valores(
+        lancar, grupo.id, ana, [(bruno, 6000), (carla, 2500), (ana, 1500)]
+    )
+
+    assert cotas_em_centavos(despesa) == [
+        (bruno, 6000),
+        (carla, 2500),
+        (ana, 1500),
+    ]
+    assert despesas.listar_por_grupo(grupo.id) == [despesa]
+
+
+@pytest.mark.parametrize(
+    "valores", [(6000, 2500, 1499), (6000, 2500, 1501)]
+)
+def test_cotas_que_nao_somam_o_valor_da_despesa_sao_rejeitadas(
+    lancar, grupo, ana, bruno, carla, valores
+):
+    cotas = list(zip([bruno, carla, ana], valores))
+
+    with pytest.raises(RegraDeDominioViolada):
+        lancar_por_valores(lancar, grupo.id, ana, cotas)
+
+
+@pytest.mark.parametrize("cota_de_carla", [0, -500])
+def test_cota_zero_ou_negativa_e_rejeitada(
+    lancar, grupo, ana, bruno, carla, cota_de_carla
+):
+    cotas = [(bruno, 10000 - cota_de_carla), (carla, cota_de_carla)]
+
+    with pytest.raises(RegraDeDominioViolada):
+        lancar_por_valores(lancar, grupo.id, ana, cotas)
+
+
+def test_membro_repetido_nas_cotas_e_rejeitado(lancar, grupo, ana, bruno):
+    with pytest.raises(RegraDeDominioViolada):
+        lancar_por_valores(
+            lancar, grupo.id, ana, [(bruno, 5000), (bruno, 5000)]
+        )
+
+
+def test_membro_das_cotas_de_fora_do_grupo_e_rejeitado(
+    lancar, grupo, ana, bruno
+):
+    with pytest.raises(RegraDeDominioViolada):
+        lancar_por_valores(lancar, grupo.id, ana, [(bruno, 5000), (999, 5000)])
+
+
+def test_divisao_por_valores_sem_cotas_e_rejeitada(lancar, grupo, ana):
+    with pytest.raises(RegraDeDominioViolada):
+        lancar_por_valores(lancar, grupo.id, ana, [])

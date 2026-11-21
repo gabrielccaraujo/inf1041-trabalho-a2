@@ -131,3 +131,75 @@ def test_despesas_de_grupo_inexistente_responde_404(client):
     )
     assert resposta.status_code == 404
     assert "erro" in resposta.get_json()
+
+
+def por_valores(*cotas):
+    return {
+        "modo": "por_valores",
+        "cotas": [
+            {"membro_id": membro_id, "valor_centavos": valor}
+            for membro_id, valor in cotas
+        ],
+    }
+
+
+def test_divisao_por_valores_responde_201_e_aparece_na_listagem(
+    client, grupo
+):
+    grupo_id, (ana, bruno, carla) = grupo
+
+    resposta = client.post(
+        f"/api/grupos/{grupo_id}/despesas",
+        json=corpo_despesa(
+            ana, [], divisao=por_valores((bruno, 7000), (carla, 3000))
+        ),
+    )
+
+    assert resposta.status_code == 201
+    cotas = [
+        {"membro_id": bruno, "valor_centavos": 7000},
+        {"membro_id": carla, "valor_centavos": 3000},
+    ]
+    assert resposta.get_json()["cotas"] == cotas
+    listadas = client.get(f"/api/grupos/{grupo_id}/despesas").get_json()
+    assert [d["cotas"] for d in listadas] == [cotas]
+
+
+def test_cotas_que_nao_somam_o_valor_respondem_422(client, grupo):
+    grupo_id, (ana, bruno, carla) = grupo
+
+    resposta = client.post(
+        f"/api/grupos/{grupo_id}/despesas",
+        json=corpo_despesa(
+            ana, [], divisao=por_valores((bruno, 7000), (carla, 2000))
+        ),
+    )
+
+    assert resposta.status_code == 422
+    assert "erro" in resposta.get_json()
+
+
+@pytest.mark.parametrize(
+    "divisao",
+    [
+        {"modo": "por_valores"},
+        {"modo": "por_valores", "cotas": "todas"},
+        {"modo": "por_valores", "cotas": [7000]},
+        {"modo": "por_valores", "cotas": [{"valor_centavos": 7000}]},
+        {"modo": "por_valores", "cotas": [{"membro_id": 1}]},
+        {
+            "modo": "por_valores",
+            "cotas": [{"membro_id": 1, "valor_centavos": "70"}],
+        },
+    ],
+)
+def test_cotas_malformadas_respondem_400(client, grupo, divisao):
+    grupo_id, (ana, _, _) = grupo
+
+    resposta = client.post(
+        f"/api/grupos/{grupo_id}/despesas",
+        json=corpo_despesa(ana, [], divisao=divisao),
+    )
+
+    assert resposta.status_code == 400
+    assert "erro" in resposta.get_json()

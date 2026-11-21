@@ -36,6 +36,16 @@ CREATE TABLE IF NOT EXISTS cotas (
     PRIMARY KEY (despesa_id, posicao)
 );
 
+CREATE TABLE IF NOT EXISTS pagamentos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    grupo_id INTEGER NOT NULL REFERENCES grupos (id),
+    de_membro_id INTEGER NOT NULL REFERENCES membros (id),
+    para_membro_id INTEGER NOT NULL REFERENCES membros (id),
+    valor_centavos INTEGER NOT NULL,
+    meio TEXT NOT NULL,
+    data TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS vaquinhas (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     grupo_id INTEGER NOT NULL REFERENCES grupos (id),

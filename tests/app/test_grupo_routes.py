@@ -118,3 +118,17 @@ def test_adicionar_membro_com_corpo_malformado_responde_400(client, corpo):
 
     assert resposta.status_code == 400
     assert "erro" in resposta.get_json()
+
+
+def test_id_de_grupo_nao_numerico_responde_404_no_formato_de_erro(client):
+    resposta = client.get("/api/grupos/abc")
+
+    assert resposta.status_code == 404
+    assert "erro" in resposta.get_json()
+
+
+def test_metodo_nao_permitido_responde_no_formato_de_erro(client):
+    resposta = client.delete("/api/grupos/1")
+
+    assert resposta.status_code == 405
+    assert "erro" in resposta.get_json()

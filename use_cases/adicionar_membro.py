@@ -1,7 +1,7 @@
 from typing import Optional
 
 from domain.grupo import GrupoRepository, Membro
-from use_cases.buscar_grupo import buscar_grupo
+from use_cases.comum import obter_grupo_ou_falhar
 
 
 class AdicionarMembro:
@@ -11,7 +11,7 @@ class AdicionarMembro:
     def executar(
         self, grupo_id: int, nome: str, chave_pix: Optional[str] = None
     ) -> Membro:
-        grupo = buscar_grupo(self._grupos, grupo_id)
+        grupo = obter_grupo_ou_falhar(self._grupos, grupo_id)
         membro = grupo.adicionar_membro(nome, chave_pix)
         self._grupos.salvar(grupo)
         return membro

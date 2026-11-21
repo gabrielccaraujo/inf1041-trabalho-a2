@@ -19,9 +19,7 @@ class Membro:
     id: Optional[int] = None
 
     def __post_init__(self) -> None:
-        self.nome = (self.nome or "").strip()
-        if not self.nome:
-            raise RegraDeDominioViolada("O nome do Membro nao pode ser vazio.")
+        self.nome = _nome_obrigatorio(self.nome, "Membro")
         self.chave_pix = (self.chave_pix or "").strip() or None
         if self.chave_pix and len(self.chave_pix) > TAMANHO_MAXIMO_CHAVE_PIX:
             raise RegraDeDominioViolada(
@@ -42,24 +40,35 @@ class Grupo:
     id: Optional[int] = None
 
     def __post_init__(self) -> None:
-        self.nome = (self.nome or "").strip()
-        if not self.nome:
-            raise RegraDeDominioViolada("O nome do Grupo nao pode ser vazio.")
+        self.nome = _nome_obrigatorio(self.nome, "Grupo")
+        vistos: list[Membro] = []
+        for membro in self.membros:
+            self._garantir_nome_livre(membro.nome, vistos)
+            vistos.append(membro)
 
     def adicionar_membro(
         self, nome: str, chave_pix: Optional[str] = None
     ) -> Membro:
         membro = Membro(nome=nome, chave_pix=chave_pix)
-        if any(_mesmo_nome(m.nome, membro.nome) for m in self.membros):
-            raise RegraDeDominioViolada(
-                f"Ja existe um Membro chamado {membro.nome} no Grupo."
-            )
+        self._garantir_nome_livre(membro.nome, self.membros)
         self.membros.append(membro)
         return membro
 
+    @staticmethod
+    def _garantir_nome_livre(nome: str, membros: list[Membro]) -> None:
+        if any(m.nome.casefold() == nome.casefold() for m in membros):
+            raise RegraDeDominioViolada(
+                f"Ja existe um Membro chamado {nome} no Grupo."
+            )
 
-def _mesmo_nome(a: str, b: str) -> bool:
-    return a.casefold() == b.casefold()
+
+def _nome_obrigatorio(nome: Optional[str], entidade: str) -> str:
+    nome = (nome or "").strip()
+    if not nome:
+        raise RegraDeDominioViolada(
+            f"O nome do {entidade} nao pode ser vazio."
+        )
+    return nome
 
 
 class GrupoRepository(Protocol):

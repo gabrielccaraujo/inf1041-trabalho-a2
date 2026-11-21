@@ -1,5 +1,5 @@
 from domain.grupo import Grupo, GrupoRepository
-from use_cases.buscar_grupo import buscar_grupo
+from use_cases.comum import obter_grupo_ou_falhar
 
 
 class ConsultarGrupo:
@@ -7,4 +7,4 @@ class ConsultarGrupo:
         self._grupos = grupos
 
     def executar(self, grupo_id: int) -> Grupo:
-        return buscar_grupo(self._grupos, grupo_id)
+        return obter_grupo_ou_falhar(self._grupos, grupo_id)

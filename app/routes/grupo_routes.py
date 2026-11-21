@@ -1,6 +1,10 @@
 from flask import Blueprint, jsonify
 
-from app.routes.erros import corpo_json, texto_obrigatorio, texto_opcional
+from app.routes.requisicao import (
+    corpo_json,
+    texto_obrigatorio,
+    texto_opcional,
+)
 from domain.grupo import Grupo, Membro
 from use_cases.adicionar_membro import AdicionarMembro
 from use_cases.consultar_grupo import ConsultarGrupo

@@ -13,6 +13,7 @@ app/
   routes/grupo_routes.py             # rotas HTTP de Grupo e Membros (Flask Blueprint)
   routes/health_routes.py            # GET /api/health
   routes/erros.py                    # traducao de erros para {"erro": ...} (400/404/422)
+  routes/requisicao.py               # leitura e validacao de formato do corpo JSON
   main.py                            # create_app(): monta infra -> casos de uso -> rotas
 domain/
   grupo.py                           # raiz Grupo, entidade Membro e porta GrupoRepository

@@ -1,3 +1,4 @@
+import sqlite3
 from typing import Optional
 
 from domain.grupo import Grupo, Membro
@@ -14,19 +15,24 @@ class GrupoRepositorySqlite:
                 "INSERT INTO grupos (nome) VALUES (?)", (grupo.nome,)
             )
             grupo.id = cursor.lastrowid
-        return self.salvar(grupo)
+            self._inserir_membros_novos(conn, grupo)
+        return grupo
 
     def salvar(self, grupo: Grupo) -> Grupo:
         with self.database.transaction() as conn:
-            for membro in grupo.membros:
-                if membro.id is None:
-                    cursor = conn.execute(
-                        "INSERT INTO membros (grupo_id, nome, chave_pix) "
-                        "VALUES (?, ?, ?)",
-                        (grupo.id, membro.nome, membro.chave_pix),
-                    )
-                    membro.id = cursor.lastrowid
+            self._inserir_membros_novos(conn, grupo)
         return grupo
+
+    @staticmethod
+    def _inserir_membros_novos(conn: sqlite3.Connection, grupo: Grupo) -> None:
+        for membro in grupo.membros:
+            if membro.id is None:
+                cursor = conn.execute(
+                    "INSERT INTO membros (grupo_id, nome, chave_pix) "
+                    "VALUES (?, ?, ?)",
+                    (grupo.id, membro.nome, membro.chave_pix),
+                )
+                membro.id = cursor.lastrowid
 
     def buscar(self, grupo_id: int) -> Optional[Grupo]:
         with self.database.transaction() as conn:

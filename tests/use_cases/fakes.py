@@ -2,6 +2,7 @@
 
 from typing import Optional
 
+from domain.despesa import Despesa
 from domain.grupo import Grupo
 
 
@@ -27,3 +28,16 @@ class GrupoRepositoryEmMemoria:
 
     def buscar(self, grupo_id: int) -> Optional[Grupo]:
         return self._grupos.get(grupo_id)
+
+
+class DespesaRepositoryEmMemoria:
+    def __init__(self) -> None:
+        self._despesas: list[Despesa] = []
+
+    def adicionar(self, despesa: Despesa) -> Despesa:
+        despesa.id = len(self._despesas) + 1
+        self._despesas.append(despesa)
+        return despesa
+
+    def listar_por_grupo(self, grupo_id: int) -> list[Despesa]:
+        return [d for d in self._despesas if d.grupo_id == grupo_id]

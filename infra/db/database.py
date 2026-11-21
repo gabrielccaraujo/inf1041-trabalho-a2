@@ -18,6 +18,23 @@ CREATE TABLE IF NOT EXISTS membros (
     nome TEXT NOT NULL,
     chave_pix TEXT
 );
+
+CREATE TABLE IF NOT EXISTS despesas (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    grupo_id INTEGER NOT NULL REFERENCES grupos (id),
+    descricao TEXT NOT NULL,
+    valor_centavos INTEGER NOT NULL,
+    pagador_id INTEGER NOT NULL REFERENCES membros (id),
+    data TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS cotas (
+    despesa_id INTEGER NOT NULL REFERENCES despesas (id),
+    posicao INTEGER NOT NULL,
+    membro_id INTEGER NOT NULL REFERENCES membros (id),
+    valor_centavos INTEGER NOT NULL,
+    PRIMARY KEY (despesa_id, posicao)
+);
 """
 
 

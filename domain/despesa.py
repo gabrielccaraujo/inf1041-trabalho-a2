@@ -19,7 +19,9 @@ class Divisao:
     """VO de Cotas que reparte um Valor (ADR 0003).
 
     Garante na construcao: ao menos uma Cota, uma Cota por Membro e soma
-    das Cotas igual ao Valor repartido. Os modos de divisao sao fabricas.
+    das Cotas igual ao Valor repartido. Os modos de divisao sao fabricas,
+    e regras proprias de um modo (como Cota positiva na divisao por
+    valores) ficam na fabrica dele.
     """
 
     valor: Valor
@@ -51,6 +53,13 @@ class Divisao:
             valor,
             tuple(Cota(m, v) for m, v in zip(membros, valores_das_cotas)),
         )
+
+    @classmethod
+    def por_valores(cls, cotas: list[Cota], valor: Valor) -> "Divisao":
+        """Cada Membro com a Cota informada; toda Cota deve ser positiva."""
+        if any(cota.valor <= Valor(0) for cota in cotas):
+            raise RegraDeDominioViolada("Toda Cota deve ser positiva.")
+        return cls(valor, tuple(cotas))
 
     def membros(self) -> list[int]:
         return [cota.membro_id for cota in self.cotas]

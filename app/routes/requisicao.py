@@ -46,6 +46,19 @@ def lista_de_inteiros(dados: dict[str, Any], campo: str) -> list[int]:
     return valor
 
 
+def lista_de_objetos(
+    dados: dict[str, Any], campo: str
+) -> list[dict[str, Any]]:
+    valor = dados.get(campo)
+    if not isinstance(valor, list) or not all(
+        isinstance(item, dict) for item in valor
+    ):
+        raise RequisicaoInvalida(
+            f"O campo '{campo}' deve ser uma lista de objetos."
+        )
+    return valor
+
+
 def objeto_obrigatorio(dados: dict[str, Any], campo: str) -> dict[str, Any]:
     valor = dados.get(campo)
     if not isinstance(valor, dict):

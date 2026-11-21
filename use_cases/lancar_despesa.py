@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Callable, Optional, Protocol
 
-from domain.despesa import Despesa, DespesaRepository, Divisao
+from domain.despesa import Cota, Despesa, DespesaRepository, Divisao
 from domain.erros import RegraDeDominioViolada
 from domain.grupo import GrupoRepository
 from domain.valor import Valor
@@ -23,6 +23,22 @@ class DivisaoIgualitaria:
 
     def dividir(self, valor: Valor) -> Divisao:
         return Divisao.igualitaria(list(self.membros), valor)
+
+
+@dataclass(frozen=True)
+class DivisaoPorValores:
+    """Pedido de Divisao com a Cota de cada Membro: (membro_id, centavos)."""
+
+    cotas: tuple[tuple[int, int], ...]
+
+    def dividir(self, valor: Valor) -> Divisao:
+        return Divisao.por_valores(
+            [
+                Cota(membro_id, Valor(centavos))
+                for membro_id, centavos in self.cotas
+            ],
+            valor,
+        )
 
 
 class LancarDespesa:

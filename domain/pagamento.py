@@ -9,7 +9,7 @@ from domain.valor import Valor
 
 @dataclass
 class Pagamento:
-    """Raiz de agregado: transferencia declarada entre dois Membros.
+    """Raiz de agregado: Pagamento declarado entre dois Membros.
 
     E declarativo: o RachAI confia e nunca confirma (ADR 0007).
     """

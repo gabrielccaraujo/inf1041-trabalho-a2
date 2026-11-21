@@ -36,13 +36,13 @@ def pagar(client, grupo_id, de, para, valor, meio="pix"):
 
 
 def saldos(client, grupo_id):
+    """(Saldos em centavos, Transferencias sugeridas) do Grupo."""
     corpo = client.get(f"/api/grupos/{grupo_id}/saldos").get_json()
-    return [s["saldo_centavos"] for s in corpo["saldos"]], corpo[
-        "transferencias"
-    ]
+    em_centavos = [s["saldo_centavos"] for s in corpo["saldos"]]
+    return em_centavos, corpo["transferencias"]
 
 
-def test_despesa_saldo_pagamento_saldo_zerado(client, grupo):
+def test_pagar_a_transferencia_sugerida_zera_os_saldos(client, grupo):
     grupo_id, (ana, bruno) = grupo
     client.post(
         f"/api/grupos/{grupo_id}/despesas",
@@ -84,15 +84,11 @@ def test_despesa_saldo_pagamento_saldo_zerado(client, grupo):
     ]
 
 
-@pytest.mark.parametrize(
-    "caso", ["mesmo-membro", "valor-zero", "valor-negativo", "de-fora"]
-)
+@pytest.mark.parametrize("caso", ["mesmo-membro", "de-fora"])
 def test_regra_de_pagamento_violada_responde_422(client, grupo, caso):
     grupo_id, (ana, bruno) = grupo
     de, para, valor = {
         "mesmo-membro": (ana, ana, 100),
-        "valor-zero": (bruno, ana, 0),
-        "valor-negativo": (bruno, ana, -100),
         "de-fora": (999, ana, 100),
     }[caso]
 

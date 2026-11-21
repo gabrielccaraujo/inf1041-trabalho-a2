@@ -1,23 +1,25 @@
 import threading
 
-from domain.task import Task
+from domain.grupo import Grupo
 from infra.db.database import Database
-from infra.repositories.task_repository_sqlite import TaskRepositorySqlite
+from infra.repositories.grupo_repository_sqlite import GrupoRepositorySqlite
 
 
 def test_acesso_concorrente_nao_corrompe_resultados():
     database = Database(":memory:")
     database.init_schema()
-    repository = TaskRepositorySqlite(database)
+    repository = GrupoRepositorySqlite(database)
+    criados = []
     erros = []
 
     def trabalho():
         for i in range(100):
             try:
                 assert database.ping()
-                repository.add(Task(title=f"tarefa {i}"))
-                repository.list()
-            except Exception as e:  # pragma: no cover - so ocorre se houver regressao
+                grupo = repository.adicionar(Grupo(nome=f"grupo {i}"))
+                criados.append(grupo.id)
+                assert repository.buscar(grupo.id).nome == f"grupo {i}"
+            except Exception as e:  # pragma: no cover - so ocorre em regressao
                 erros.append(e)
 
     threads = [threading.Thread(target=trabalho) for _ in range(8)]
@@ -27,4 +29,4 @@ def test_acesso_concorrente_nao_corrompe_resultados():
         t.join()
 
     assert erros == []
-    assert len(repository.list()) == 800
+    assert len(set(criados)) == 800

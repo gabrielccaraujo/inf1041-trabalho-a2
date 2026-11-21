@@ -7,10 +7,16 @@ from typing import Iterator
 DEFAULT_DB_PATH = Path(__file__).resolve().parents[2] / "app.db"
 
 SCHEMA = """
-CREATE TABLE IF NOT EXISTS tasks (
+CREATE TABLE IF NOT EXISTS grupos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    done INTEGER NOT NULL DEFAULT 0
+    nome TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS membros (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    grupo_id INTEGER NOT NULL REFERENCES grupos (id),
+    nome TEXT NOT NULL,
+    chave_pix TEXT
 );
 """
 

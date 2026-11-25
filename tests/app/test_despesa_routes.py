@@ -226,3 +226,20 @@ def test_cotas_malformadas_respondem_400(client, grupo, divisao):
 
     assert resposta.status_code == 400
     assert "erro" in resposta.get_json()
+
+
+@pytest.mark.parametrize("modo", [[], {}, None, True, 1, "desconhecido"])
+def test_modo_de_divisao_invalido_responde_400(client, grupo, modo):
+    grupo_id, (ana, bruno, _) = grupo
+    resposta = client.post(
+        f"/api/grupos/{grupo_id}/despesas",
+        json=corpo_despesa(
+            ana,
+            divisao={"modo": modo, "membros": [ana, bruno]},
+        ),
+    )
+    assert resposta.status_code == 400
+    assert "erro" in resposta.get_json()
+    assert client.get(
+        f"/api/grupos/{grupo_id}/despesas"
+    ).get_json() == []

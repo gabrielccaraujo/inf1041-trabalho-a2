@@ -1,11 +1,13 @@
 """Repositorios falsos em memoria: testam os use cases sem banco de dados."""
 
+from copy import deepcopy
 from typing import Optional
 
 from domain.despesa import Despesa
+from domain.erros import NaoEncontrado
 from domain.grupo import Grupo
 from domain.pagamento import Pagamento
-from domain.vaquinha import Vaquinha
+from domain.vaquinha import Contribuicao, Vaquinha
 
 
 class GrupoRepositoryEmMemoria:
@@ -46,25 +48,48 @@ class DespesaRepositoryEmMemoria:
 
 
 class VaquinhaRepositoryEmMemoria:
+    """Usa copias desacopladas, como o adaptador SQLite."""
+
     def __init__(self) -> None:
         self._vaquinhas: dict[int, Vaquinha] = {}
 
     def adicionar(self, vaquinha: Vaquinha) -> Vaquinha:
         vaquinha.id = len(self._vaquinhas) + 1
-        self._vaquinhas[vaquinha.id] = vaquinha
+        self._vaquinhas[vaquinha.id] = deepcopy(vaquinha)
         return vaquinha
 
-    def salvar(self, vaquinha: Vaquinha) -> Vaquinha:
-        self._vaquinhas[vaquinha.id] = vaquinha
+    def adicionar_contribuicao(
+        self, vaquinha_id: int, contribuicao: Contribuicao
+    ) -> Contribuicao:
+        vaquinha = self._obter(vaquinha_id)
+        nova = vaquinha.contribuir(
+            contribuicao.membro_id,
+            contribuicao.valor,
+            contribuicao.meio,
+            contribuicao.data,
+        )
+        self._vaquinhas[vaquinha_id] = vaquinha
+        return nova
+
+    def encerrar(self, vaquinha_id: int) -> Vaquinha:
+        vaquinha = self._obter(vaquinha_id)
+        vaquinha.encerrar()
+        self._vaquinhas[vaquinha_id] = deepcopy(vaquinha)
         return vaquinha
 
     def buscar(self, vaquinha_id: int) -> Optional[Vaquinha]:
-        return self._vaquinhas.get(vaquinha_id)
+        return deepcopy(self._vaquinhas.get(vaquinha_id))
+
+    def _obter(self, vaquinha_id: int) -> Vaquinha:
+        vaquinha = self.buscar(vaquinha_id)
+        if vaquinha is None:
+            raise NaoEncontrado(f"Vaquinha {vaquinha_id} nao encontrada.")
+        return vaquinha
 
     def listar_por_grupo(self, grupo_id: int) -> list[Vaquinha]:
-        return [
-            v for v in self._vaquinhas.values() if v.grupo_id == grupo_id
-        ]
+        return deepcopy(
+            [v for v in self._vaquinhas.values() if v.grupo_id == grupo_id]
+        )
 
 
 class PagamentoRepositoryEmMemoria:

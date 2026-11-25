@@ -39,5 +39,6 @@ class Contribuir:
         contribuicao = vaquinha.contribuir(
             membro_id, Valor(valor_centavos), meio, self._relogio()
         )
-        self._vaquinhas.salvar(vaquinha)
-        return contribuicao
+        return self._vaquinhas.adicionar_contribuicao(
+            vaquinha.id, contribuicao
+        )

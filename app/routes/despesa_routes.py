@@ -62,7 +62,8 @@ LEITORES_DE_DIVISAO: dict[str, Callable[[dict], PedidoDeDivisao]] = {
 
 def ler_divisao(dados: dict) -> PedidoDeDivisao:
     divisao = objeto_obrigatorio(dados, "divisao")
-    leitor = LEITORES_DE_DIVISAO.get(divisao.get("modo"))
+    modo = texto_obrigatorio(divisao, "modo")
+    leitor = LEITORES_DE_DIVISAO.get(modo)
     if leitor is None:
         raise RequisicaoInvalida(
             "O modo da Divisao deve ser um de: "

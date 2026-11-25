@@ -80,12 +80,18 @@ class Vaquinha:
 class VaquinhaRepository(Protocol):
     """Porta de persistencia da Vaquinha, implementada na infra.
 
-    `salvar` grava o status e as Contribuicoes novas.
+    `adicionar_contribuicao` e `encerrar` aplicam a operacao ao estado
+    atual em uma unica transacao. Nao sincronizam listas de uma copia
+    antiga nem sobrescrevem o status a partir dela.
     """
 
     def adicionar(self, vaquinha: Vaquinha) -> Vaquinha: ...
 
-    def salvar(self, vaquinha: Vaquinha) -> Vaquinha: ...
+    def adicionar_contribuicao(
+        self, vaquinha_id: int, contribuicao: Contribuicao
+    ) -> Contribuicao: ...
+
+    def encerrar(self, vaquinha_id: int) -> Vaquinha: ...
 
     def buscar(self, vaquinha_id: int) -> Optional[Vaquinha]: ...
 

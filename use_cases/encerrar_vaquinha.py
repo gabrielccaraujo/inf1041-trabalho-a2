@@ -16,4 +16,4 @@ class EncerrarVaquinha:
             self._vaquinhas, grupo, vaquinha_id
         )
         vaquinha.encerrar()
-        return self._vaquinhas.salvar(vaquinha)
+        return self._vaquinhas.encerrar(vaquinha.id)

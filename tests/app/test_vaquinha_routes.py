@@ -1,8 +1,13 @@
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date
+from threading import Barrier, Event
 
 import pytest
 
 from app.main import create_app
+from infra.repositories.vaquinha_repository_sqlite import (
+    VaquinhaRepositorySqlite,
+)
 
 
 @pytest.fixture
@@ -206,3 +211,132 @@ def test_vaquinha_ou_grupo_inexistente_responde_404(client, grupo):
     resposta = criar_vaquinha(client, 99, ana)
     assert resposta.status_code == 404
     assert "erro" in resposta.get_json()
+
+
+def preparar_concorrencia(tmp_path, conexoes_separadas):
+    if conexoes_separadas:
+        banco = tmp_path / "concorrencia.db"
+        apps = [create_app(banco), create_app(banco)]
+    else:
+        app = create_app(":memory:")
+        apps = [app, app]
+    client = apps[0].test_client()
+    grupo_id = client.post(
+        "/api/grupos", json={"nome": "Concorrencia"}
+    ).get_json()["id"]
+    membros = [
+        client.post(
+            f"/api/grupos/{grupo_id}/membros", json={"nome": nome}
+        ).get_json()["id"]
+        for nome in ["Ana", "Bruno", "Carla"]
+    ]
+    vaquinha_id = criar_vaquinha(
+        client, grupo_id, membros[0]
+    ).get_json()["id"]
+    return apps, grupo_id, membros, vaquinha_id
+
+
+def sincronizar_leituras(monkeypatch):
+    barreira = Barrier(2, timeout=5)
+    buscar_original = VaquinhaRepositorySqlite.buscar
+
+    def buscar(repository, vaquinha_id):
+        vaquinha = buscar_original(repository, vaquinha_id)
+        barreira.wait()
+        return vaquinha
+
+    monkeypatch.setattr(VaquinhaRepositorySqlite, "buscar", buscar)
+
+
+@pytest.mark.parametrize("conexoes_separadas", [False, True])
+def test_contribuicoes_simultaneas_sao_ambas_persistidas(
+    tmp_path, monkeypatch, conexoes_separadas
+):
+    apps, grupo_id, membros, vid = preparar_concorrencia(
+        tmp_path, conexoes_separadas
+    )
+    sincronizar_leituras(monkeypatch)
+
+    def enviar(item):
+        app, membro_id, valor = item
+        with app.test_client() as client:
+            return contribuir(client, grupo_id, vid, membro_id, valor)
+
+    pedidos = [
+        (apps[0], membros[1], 500),
+        (apps[1], membros[2], 700),
+    ]
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        respostas = list(executor.map(enviar, pedidos))
+
+    assert [r.status_code for r in respostas] == [201, 201]
+    gravada = apps[0].test_client().get(
+        f"/api/grupos/{grupo_id}/vaquinhas"
+    ).get_json()[0]
+    assert gravada["total_arrecadado_centavos"] == 1200
+    assert sorted(
+        (c["membro_id"], c["valor_centavos"])
+        for c in gravada["contribuicoes"]
+    ) == [(membros[1], 500), (membros[2], 700)]
+
+
+def test_contribuicao_em_voo_nao_reabre_vaquinha_encerrada(
+    client, grupo, monkeypatch
+):
+    grupo_id, (ana, bruno, _) = grupo
+    vid = criar_vaquinha(client, grupo_id, ana).get_json()["id"]
+    carregada = Event()
+    continuar = Event()
+    buscar_original = VaquinhaRepositorySqlite.buscar
+
+    def buscar(repository, vaquinha_id):
+        vaquinha = buscar_original(repository, vaquinha_id)
+        if not carregada.is_set():
+            carregada.set()
+            assert continuar.wait(timeout=5)
+        return vaquinha
+
+    monkeypatch.setattr(VaquinhaRepositorySqlite, "buscar", buscar)
+
+    def enviar():
+        with client.application.test_client() as outro:
+            return contribuir(outro, grupo_id, vid, bruno, 500)
+
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        futura = executor.submit(enviar)
+        try:
+            assert carregada.wait(timeout=5)
+            encerrada = client.post(
+                f"/api/grupos/{grupo_id}/vaquinhas/{vid}/encerrar"
+            )
+        finally:
+            continuar.set()
+        resposta = futura.result(timeout=5)
+
+    assert encerrada.status_code == 200
+    assert resposta.status_code == 422
+    assert "erro" in resposta.get_json()
+    gravada = client.get(
+        f"/api/grupos/{grupo_id}/vaquinhas"
+    ).get_json()[0]
+    assert gravada["status"] == "encerrada"
+    assert gravada["contribuicoes"] == []
+
+
+def test_encerramentos_simultaneos_nao_sao_ambos_confirmados(
+    client, grupo, monkeypatch
+):
+    grupo_id, (ana, _, _) = grupo
+    vid = criar_vaquinha(client, grupo_id, ana).get_json()["id"]
+    sincronizar_leituras(monkeypatch)
+
+    def encerrar(_):
+        with client.application.test_client() as outro:
+            return outro.post(
+                f"/api/grupos/{grupo_id}/vaquinhas/{vid}/encerrar"
+            )
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        respostas = list(executor.map(encerrar, range(2)))
+
+    assert sorted(r.status_code for r in respostas) == [200, 422]

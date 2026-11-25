@@ -74,7 +74,9 @@ class Database:
     O servidor Flask atende requisicoes em threads diferentes; uma mesma
     conexao sqlite3 usada ao mesmo tempo por duas threads corrompe os
     resultados. Todo acesso passa por `transaction()`, que serializa o uso
-    com um lock e faz commit/rollback automaticamente.
+    com um lock e faz commit/rollback automaticamente. Uma transacao
+    com escrita=True reserva a escrita antes da leitura, protegendo
+    operacoes de leitura/modificacao contra outras conexoes SQLite.
     """
 
     def __init__(self, db_path: str | Path = DEFAULT_DB_PATH) -> None:
@@ -83,9 +85,13 @@ class Database:
         self._lock = threading.Lock()
 
     @contextmanager
-    def transaction(self) -> Iterator[sqlite3.Connection]:
+    def transaction(
+        self, *, escrita: bool = False
+    ) -> Iterator[sqlite3.Connection]:
         with self._lock:
             try:
+                if escrita:
+                    self._connection.execute("BEGIN IMMEDIATE")
                 yield self._connection
                 self._connection.commit()
             except Exception:
